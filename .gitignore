@@ -6,6 +6,8 @@
 # IDE and editor files
 .vscode/
 .idea/
+.claude/
+.cursor/
 *.swp
 *.swo
 *~
@@ -36,28 +38,21 @@ access_log
 *.backup
 *.sql
 *.dump
+*.zip
+*.tar.gz
 
 # System files
 .htaccess.local
 php.ini
-.vscode/
-.idea/
-.claude/
-.cursor/
-*.log
-*.bak
-*.sql
-*.zip
-*.tar.gz
 
 # Keep the example files
 !database.example.php
 !.env.example
 
 # IA Agents and Instructions
-!AGENTS.md
-!INSTRUCTIONS.md
-!CONTRIBUTING.md
-!DIAGNOSTICS.md
-!DIAGNOSTICO_UX.md
-!PROYECTO_COMPLETADO.md
+AGENTS.md
+INSTRUCTIONS.md
+CONTRIBUTING.md
+DIAGNOSTICS.md
+DIAGNOSTICO_UX.md
+PROYECTO_COMPLETADO.md
