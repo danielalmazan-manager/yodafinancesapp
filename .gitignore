@@ -40,7 +40,24 @@ access_log
 # System files
 .htaccess.local
 php.ini
+.vscode/
+.idea/
+.claude/
+.cursor/
+*.log
+*.bak
+*.sql
+*.zip
+*.tar.gz
 
 # Keep the example files
 !database.example.php
 !.env.example
+
+# IA Agents and Instructions
+!AGENTS.md
+!INSTRUCTIONS.md
+!CONTRIBUTING.md
+!DIAGNOSTICS.md
+!DIAGNOSTICO_UX.md
+!PROYECTO_COMPLETADO.md
