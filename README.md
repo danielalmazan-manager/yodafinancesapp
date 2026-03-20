@@ -405,12 +405,12 @@ SESSION_LIFETIME=480
 ## 🎯 Future Enhancements
 
 - [ ] Multi-currency support
-- [ ] Data export (Excel/PDF)
+- [x] Data export (CSV)
 - [ ] Email notifications
 - [ ] Recurring transactions
 - [ ] Bill reminders
 - [ ] Financial reports
-- [ ] Dark/Light theme toggle
+- [x] Dark/Light theme toggle
 - [ ] Mobile app (React Native)
 - [ ] AI-powered insights
 - [ ] Bank account integration
