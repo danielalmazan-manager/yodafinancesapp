@@ -21,8 +21,8 @@ $user = Auth::currentUser();
     <title>Yoda · <?= htmlspecialchars($user['name']) ?></title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="assets/icons/favicon-96x96.png">
+    <link rel="icon" type="image/x-icon" href="assets/icons/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -69,7 +69,7 @@ $user = Auth::currentUser();
                 <span class="icon-sun">☀️</span>
                 <span class="icon-moon">🌙</span>
             </button>
-            <div class="user-profile">
+            <div class="user-profile" onclick="navigate('#profile')" style="cursor: pointer;">
                 <div class="user-profile__info">
                     <span class="user-profile__name"><?= htmlspecialchars($user['name']) ?></span>
                 </div>
@@ -165,6 +165,7 @@ window.YODA_USER = <?= json_encode($user) ?>;
 <script src="js/app/expenses.js"></script>
 <script src="js/app/debt.js"></script>
 <script src="js/app/goals.js"></script>
+<script src="js/app/profile.js"></script>
 <script src="js/app/auth.js"></script>
 <script src="js/app/offline.js"></script>
 

@@ -50,7 +50,7 @@ class IncomeRepository implements IncomeRepositoryInterface {
             LEFT JOIN CatalogOrigin co ON ti.idOrigin = co.idOrigin
         ";
         if ($where) $sql .= ' WHERE ' . implode(' AND ', $where);
-        $sql .= ' ORDER BY cd.date DESC';
+        $sql .= ' ORDER BY cd.date ASC';
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);

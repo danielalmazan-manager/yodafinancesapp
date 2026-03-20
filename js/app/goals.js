@@ -16,50 +16,7 @@ async function renderGoalsModule(outlet) {
     const totalSaved  = +summary.totalSaved || 0;
     const globalPercent = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
 
-    const tableRows = rows.length
-        ? rows.map(r => {
-            const target = +r.targetAmount || 0;
-            const saved = +r.amountDeposited || 0;
-            const pending = Math.max(0, target - saved);
-            const percent = target > 0 ? Math.min(100, Math.round((saved / target) * 100)) : 100;
-            const isCompleted = percent >= 100;
-
-            const badge = isCompleted
-                ? `<span class="badge badge--income">🎯 Completada</span>`
-                : `<span class="badge badge--pending">🚀 En marcha</span>`;
-
-            return `<tr data-id="${r.idGoal}">
-              <td>${Ui.date(r.date)}</td>
-              <td>
-                <div style="display:flex; flex-direction:column; gap:4px">
-                    <span style="font-weight:600">${r.nameTypeGoal || '—'}</span>
-                    <span class="txt-muted" style="font-size:0.8rem">${r.namePlanGoal || '—'}</span>
-                </div>
-              </td>
-              <td><span class="txt-muted">${r.nameTypeSubjectGoal || '—'}</span></td>
-              <td>
-                <div style="display:flex; flex-direction:column; gap:4px">
-                    <div style="display:flex; justify-content:space-between; font-size:0.85rem">
-                        <span>${Ui.money(saved)}</span>
-                        <span class="txt-muted">de ${Ui.money(target)}</span>
-                    </div>
-                    <div class="quincena-progress" style="height:6px">
-                        <div class="q-bar" style="width: ${percent}%; background: ${isCompleted ? 'var(--clr-income)' : 'var(--clr-primary)'}"></div>
-                    </div>
-                </div>
-              </td>
-              <td><span class="${isCompleted ? 'amount-income' : 'amount-pending'}" style="font-weight:600">${Ui.money(pending)}</span></td>
-              <td>${badge}</td>
-              <td class="txt-muted" style="font-size:0.85rem">${r.txtDescription || '—'}</td>
-              <td>
-                <div class="tbl-actions">
-                  <button class="tbl-btn" onclick="goalEdit(${r.idGoal})" title="Editar">✏️</button>
-                  <button class="tbl-btn tbl-btn--danger" onclick="goalDelete(${r.idGoal})" title="Eliminar">🗑</button>
-                </div>
-              </td>
-            </tr>`;
-          }).join('')
-        : `<tr><td colspan="8"><div class="empty-state"><div class="empty-state__icon">🎯</div><p class="empty-state__title">Sin metas registradas</p><p class="empty-state__text">Define tus objetivos y empieza a ahorrar hoy mismo.</p></div></td></tr>`;
+    const tableRows = renderGoalRows(rows, cats);
 
     outlet.innerHTML = `
       <div class="module-header" style="margin-bottom: var(--gap-lg);">
@@ -95,8 +52,17 @@ async function renderGoalsModule(outlet) {
       </div>
 
       <div class="table-wrap">
-        <div class="table-toolbar">
-          <span class="table-toolbar__title">Mis Metas (${rows.length})</span>
+        <div class="table-toolbar" style="flex-wrap:wrap; gap:15px">
+          <div style="display:flex; align-items:center; gap:10px; flex-grow:1">
+            <span class="table-toolbar__title">Mis Metas</span>
+            <select class="form__input" style="padding:4px 8px; font-size:0.8rem; width:auto" id="goalsFilterDate">
+                <option value="">Todas las fechas</option>
+                ${Ui.options(cats.dates, 'idCatDate', r => `${r.date} (Q${r.numQuin})`)}
+            </select>
+            <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer; color:var(--clr-text-2)">
+                <input type="checkbox" id="goalsHideCompleted" checked> Ocultar completadas
+            </label>
+          </div>
           <input type="text" class="table-search" id="goalSearch" placeholder="Buscar…">
         </div>
         <div style="overflow-x:auto">
@@ -113,8 +79,72 @@ async function renderGoalsModule(outlet) {
       </div>`;
 
     Ui.filterTable('goalSearch', 'goalTable');
+
+    const handleFilters = () => {
+        const dateId = document.getElementById('goalsFilterDate').value;
+        const hideCompleted = document.getElementById('goalsHideCompleted').checked;
+        
+        let filtered = rows;
+        if (dateId) filtered = filtered.filter(r => r.idCatDate == dateId);
+        if (hideCompleted) {
+            filtered = filtered.filter(r => (+r.amountDeposited < +r.targetAmount) || (+r.targetAmount == 0));
+        }
+        
+        document.querySelector('#goalTable tbody').innerHTML = renderGoalRows(filtered, cats);
+    };
+
+    document.getElementById('goalsFilterDate').addEventListener('change', handleFilters);
+    document.getElementById('goalsHideCompleted').addEventListener('change', handleFilters);
+
     window._goalRows = rows;
     window._goalCats = cats;
+}
+
+function renderGoalRows(rows, cats) {
+    if (!rows.length) return '<tr><td colspan="8"><div class="empty-state">No hay resultados...</div></td></tr>';
+    
+    return rows.map(r => {
+        const target = +r.targetAmount || 0;
+        const saved = +r.amountDeposited || 0;
+        const pending = Math.max(0, target - saved);
+        const percent = target > 0 ? Math.min(100, Math.round((saved / target) * 100)) : 100;
+        const isCompleted = percent >= 100;
+
+        const badge = isCompleted
+            ? `<span class="badge badge--income">🎯 Completada</span>`
+            : `<span class="badge badge--pending">🚀 En marcha</span>`;
+
+        return `<tr data-id="${r.idGoal}">
+          <td>${Ui.date(r.date)}</td>
+          <td>
+            <div style="display:flex; flex-direction:column; gap:4px">
+                <span style="font-weight:600">${r.nameTypeGoal || '—'}</span>
+                <span class="txt-muted" style="font-size:0.8rem">${r.namePlanGoal || '—'}</span>
+            </div>
+          </td>
+          <td><span class="txt-muted">${r.nameTypeSubjectGoal || '—'}</span></td>
+          <td>
+            <div style="display:flex; flex-direction:column; gap:4px">
+                <div style="display:flex; justify-content:space-between; font-size:0.85rem">
+                    <span>${Ui.money(saved)}</span>
+                    <span class="txt-muted">de ${Ui.money(target)}</span>
+                </div>
+                <div class="quincena-progress" style="height:6px">
+                    <div class="q-bar" style="width: ${percent}%; background: ${isCompleted ? 'var(--clr-income)' : 'var(--clr-primary)'}"></div>
+                </div>
+            </div>
+          </td>
+          <td><span class="${isCompleted ? 'amount-income' : 'amount-pending'}" style="font-weight:600">${Ui.money(pending)}</span></td>
+          <td>${badge}</td>
+          <td class="txt-muted" style="font-size:0.85rem">${r.txtDescription || '—'}</td>
+          <td>
+            <div class="tbl-actions">
+              <button class="tbl-btn" onclick="goalEdit(${r.idGoal})" title="Editar">✏️</button>
+              <button class="tbl-btn tbl-btn--danger" onclick="goalDelete(${r.idGoal})" title="Eliminar">🗑</button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
 }
 
 function goalFormHTML(data = {}) {

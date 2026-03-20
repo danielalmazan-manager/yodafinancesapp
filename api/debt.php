@@ -46,7 +46,7 @@ if ($method === 'GET') {
     $where[] = "td.idUser IN ($allowedIdsStr)";
     
     if ($where) $sql .= ' WHERE ' . implode(' AND ', $where);
-    $sql .= ' ORDER BY cd.date DESC';
+    $sql .= ' ORDER BY cd.date ASC';
 
     $stmt = $db->prepare($sql);
     $stmt->execute($params);

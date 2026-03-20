@@ -17,53 +17,7 @@ async function renderExpensesModule(outlet) {
     const pending = Math.max(0, total - paid);
     const percent = total > 0 ? Math.round((paid / total) * 100) : 100;
 
-    const tableRows = rows.length
-        ? rows.map(r => {
-            const user = cats.users.find(u => u.idUser == r.idUser) || { avatar: '👤', nameUser: '?' };
-            
-            // Payment status logic
-            const amtToPay = +r.amountToPay || 0;
-            const amtPaid = +r.actualAmountPaid || 0;
-            let statusBadge = '';
-            
-            if (amtPaid >= amtToPay && amtToPay > 0) {
-                statusBadge = '<span class="badge badge--income">✅ Pagado</span>';
-            } else if (amtPaid > 0) {
-                statusBadge = '<span class="badge" style="background:var(--clr-accent); color:var(--clr-white)">🌓 Parcial</span>';
-            } else {
-                statusBadge = '<span class="badge badge--expense">⏳ Pendiente</span>';
-            }
-
-            const faltante = amtToPay - amtPaid;
-            
-            return `
-              <tr data-id="${r.idExpense}">
-                <td>${Ui.date(r.date)}</td>
-                <td>
-                    <div style="display:flex; flex-direction:column; gap:4px">
-                        <span class="badge badge--expense">🛒 ${r.nameTypeExpense || '—'}</span>
-                        ${statusBadge}
-                    </div>
-                </td>
-                <td><div class="user-chip" title="${user.nameUser}"><span>${user.avatar}</span></div></td>
-                <td><span class="txt-muted">${r.nameTypeSubjectExpense || '—'}</span></td>
-                <td>
-                    <div style="display:flex; flex-direction:column; gap:2px">
-                        <span class="amount-expense" style="font-size:1.1rem">${Ui.money(amtToPay)}</span>
-                        <span class="txt-muted" style="font-size:0.75rem">Faltante: ${Ui.money(faltante)}</span>
-                    </div>
-                </td>
-                <td><span class="txt-muted" style="font-size:0.85rem">${r.txtNotes || '—'}</span></td>
-                <td>
-                  <div class="tbl-actions">
-                    ${faltante > 0 ? `<button class="tbl-btn" onclick="expMarkPaid(${r.idExpense})" title="Marcar como pagado">✓</button>` : ''}
-                    <button class="tbl-btn" onclick="expEdit(${r.idExpense})" title="Editar">✏️</button>
-                    <button class="tbl-btn tbl-btn--danger" onclick="expDelete(${r.idExpense})" title="Eliminar">🗑</button>
-                  </div>
-                </td>
-              </tr>`;
-          }).join('')
-        : `<tr><td colspan="7"><div class="empty-state">No hay gastos en esta quincena...</div></td></tr>`;
+    const tableRows = renderExpenseRows(rows, cats);
 
     outlet.innerHTML = `
       <div class="module-header" style="margin-bottom: var(--gap-lg);">
@@ -98,13 +52,16 @@ async function renderExpensesModule(outlet) {
       </div>
 
       <div class="table-wrap">
-        <div class="table-toolbar" style="flex-wrap:wrap; gap:10px">
-          <div style="display:flex; align-items:center; gap:10px">
-            <span class="table-toolbar__title">Detalle de Gastos (${rows.length})</span>
-            <select class="form__input" style="padding:4px 8px; font-size:0.8rem" id="expFilterDate">
+        <div class="table-toolbar" style="flex-wrap:wrap; gap:15px">
+          <div style="display:flex; align-items:center; gap:10px; flex-grow:1">
+            <span class="table-toolbar__title">Detalle de Gastos</span>
+            <select class="form__input" style="padding:4px 8px; font-size:0.8rem; width:auto" id="expFilterDate">
                 <option value="">Todas las fechas</option>
                 ${Ui.options(cats.dates, 'idCatDate', r => `${r.date} (Q${r.numQuin})`)}
             </select>
+            <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer; color:var(--clr-text-2)">
+                <input type="checkbox" id="expHideCovered" checked> Ocultar pagados
+            </label>
           </div>
           <input type="text" class="table-search" id="expSearch" placeholder="Buscar texto...">
         </div>
@@ -122,14 +79,21 @@ async function renderExpensesModule(outlet) {
 
     Ui.filterTable('expSearch', 'expTable');
     
-    // Fortnight filter logic
-    document.getElementById('expFilterDate').addEventListener('change', (e) => {
-        const id = e.target.value;
-        const filtered = id ? rows.filter(r => r.idCatDate == id) : rows;
-        // Simple re-render of table body (dirty but effective for SPA without React)
-        // We'll just call a helper
-        updateExpTableBody(filtered, cats);
-    });
+    const handleFilters = () => {
+        const dateId = document.getElementById('expFilterDate').value;
+        const hideCovered = document.getElementById('expHideCovered').checked;
+        
+        let filtered = rows;
+        if (dateId) filtered = filtered.filter(r => r.idCatDate == dateId);
+        if (hideCovered) {
+            filtered = filtered.filter(r => (+r.actualAmountPaid < +r.amountToPay) || (+r.amountToPay == 0));
+        }
+        
+        document.querySelector('#expTable tbody').innerHTML = renderExpenseRows(filtered, cats);
+    };
+
+    document.getElementById('expFilterDate').addEventListener('change', handleFilters);
+    document.getElementById('expHideCovered').addEventListener('change', handleFilters);
 
     renderExpChart(rows);
 
@@ -137,10 +101,10 @@ async function renderExpensesModule(outlet) {
     window._expCats = cats;
 }
 
-function updateExpTableBody(rows, cats) {
-    const tbody = document.querySelector('#expTable tbody');
-    if (!tbody) return;
-    tbody.innerHTML = rows.map(r => {
+function renderExpenseRows(rows, cats) {
+    if (!rows.length) return '<tr><td colspan="7"><div class="empty-state">No hay resultados...</div></td></tr>';
+    
+    return rows.map(r => {
         const user = cats.users.find(u => u.idUser == r.idUser) || { avatar: '👤', nameUser: '?' };
         const amtToPay = +r.amountToPay || 0;
         const amtPaid = +r.actualAmountPaid || 0;
@@ -157,7 +121,7 @@ function updateExpTableBody(rows, cats) {
             <td><span class="txt-muted" style="font-size:0.85rem">${r.txtNotes || '—'}</span></td>
             <td><div class="tbl-actions">${faltante > 0 ? `<button class="tbl-btn" onclick="expMarkPaid(${r.idExpense})" title="Marcar como pagado">✓</button>` : ''}<button class="tbl-btn" onclick="expEdit(${r.idExpense})" title="Editar">✏️</button><button class="tbl-btn tbl-btn--danger" onclick="expDelete(${r.idExpense})" title="Eliminar">🗑</button></div></td>
           </tr>`;
-    }).join('') || '<tr><td colspan="7"><div class="empty-state">No hay resultados...</div></td></tr>';
+    }).join('');
 }
 
 function renderExpChart(rows) {

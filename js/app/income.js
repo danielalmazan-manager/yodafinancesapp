@@ -16,45 +16,8 @@ async function renderIncomeModule(outlet) {
     const totalExpected = +summary.expected || 0;
     const percent = totalExpected > 0 ? Math.round((totalActual / totalExpected) * 100) : 100;
 
-    const tableRows = rows.length
-        ? rows.map(r => {
-            const user = cats.users.find(u => u.idUser == r.idUser) || { avatar: '👤', nameUser: '?' };
-            const statusClass = (+r.actualAmountReceived >= +r.amountToBeReceived) ? 'amount-income' : 'amount-pending';
-            const statusIcon = (+r.actualAmountReceived >= +r.amountToBeReceived) ? '✅' : '⏳';
-            
-            const deficit = +r.amountToBeReceived - +r.actualAmountReceived;
-            const deficitBadge = deficit > 0 
-                ? `<span class="badge badge--pending" style="font-size:0.7rem; margin-top:4px">⚠️ Déficit ${Ui.money(deficit)}</span>` 
-                : '';
-            const rowStyle = deficit > 0 ? 'border-left: 4px solid var(--clr-expense)' : '';
-            
-            return `
-              <tr data-id="${r.idIncome}" style="${rowStyle}">
-                <td>${Ui.date(r.date)}</td>
-                <td>
-                    <div style="display:flex; flex-direction:column">
-                        <span class="badge badge--income">💵 ${r.nameTypeIncome || '—'}</span>
-                        ${deficitBadge}
-                    </div>
-                </td>
-                <td><div class="user-chip" title="${user.nameUser}"><span>${user.avatar}</span></div></td>
-                <td><span class="txt-muted">${r.nameTypeSubjectIncome || '—'}</span></td>
-                <td>
-                    <div style="display:flex; flex-direction:column; gap:2px">
-                        <span class="${statusClass}" style="font-size:1rem">${Ui.money(r.actualAmountReceived)}</span>
-                        <span class="txt-muted" style="font-size:0.75rem">de ${Ui.money(r.amountToBeReceived)}</span>
-                    </div>
-                </td>
-                <td><span class="txt-muted" style="font-size:0.8rem">${statusIcon} ${r.nameOrigin || '—'}</span></td>
-                <td>
-                  <div class="tbl-actions">
-                    <button class="tbl-btn" onclick="incEdit(${r.idIncome})" title="Editar">✏️</button>
-                    <button class="tbl-btn tbl-btn--danger" onclick="incDelete(${r.idIncome})" title="Eliminar">🗑</button>
-                  </div>
-                </td>
-              </tr>`;
-          }).join('')
-        : `<tr><td colspan="7"><div class="empty-state">No hay ingresos registrados...</div></td></tr>`;
+    const tableRows = renderIncomeRows(rows, cats);
+    const dateOptions = Ui.options(cats.dates, 'idCatDate', r => `${r.date} (Q${r.numQuin})`);
 
     outlet.innerHTML = `
       <div class="module-header" style="margin-bottom: var(--gap-lg);">
@@ -66,7 +29,6 @@ async function renderIncomeModule(outlet) {
           <button class="btn btn--ghost" onclick="Ui.downloadCSV('ingresos_yoda.csv', window._incRows)">📥 Exportar CSV</button>
           <button class="btn btn--primary" onclick="incNew()">+ Nuevo Ingreso</button>
         </div>
-      </div>
       </div>
 
       <div class="income-summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--gap-md); margin-bottom: var(--gap-lg);">
@@ -86,9 +48,18 @@ async function renderIncomeModule(outlet) {
       </div>
 
       <div class="table-wrap">
-        <div class="table-toolbar">
-          <span class="table-toolbar__title">Detalle de Ingresos (${rows.length})</span>
-          <input type="text" class="table-search" id="incSearch" placeholder="Cerca...">
+        <div class="table-toolbar" style="flex-wrap:wrap; gap:15px">
+          <div style="display:flex; align-items:center; gap:10px; flex-grow:1">
+            <span class="table-toolbar__title">Detalle de Ingresos</span>
+            <select class="form__input" style="padding:4px 8px; font-size:0.8rem; width:auto" id="incFilterDate">
+                <option value="">Todas las fechas</option>
+                ${dateOptions}
+            </select>
+            <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer; color:var(--clr-text-2)">
+                <input type="checkbox" id="incHideCovered" checked> Ocultar cubiertos
+            </label>
+          </div>
+          <input type="text" class="table-search" id="incSearch" placeholder="Buscar...">
         </div>
         <div style="overflow-x:auto">
           <table class="data-table" id="incTable">
@@ -103,8 +74,67 @@ async function renderIncomeModule(outlet) {
       </div>`;
 
     Ui.filterTable('incSearch', 'incTable');
+
+    const handleFilters = () => {
+        const dateId = document.getElementById('incFilterDate').value;
+        const hideCovered = document.getElementById('incHideCovered').checked;
+        
+        let filtered = rows;
+        if (dateId) filtered = filtered.filter(r => r.idCatDate == dateId);
+        if (hideCovered) {
+            filtered = filtered.filter(r => +r.actualAmountReceived < +r.amountToBeReceived);
+        }
+        
+        document.querySelector('#incTable tbody').innerHTML = renderIncomeRows(filtered, cats);
+    };
+
+    document.getElementById('incFilterDate').addEventListener('change', handleFilters);
+    document.getElementById('incHideCovered').addEventListener('change', handleFilters);
+
     window._incRows = rows;
     window._incCats = cats;
+}
+
+function renderIncomeRows(rows, cats) {
+    if (!rows.length) return `<tr><td colspan="7"><div class="empty-state">No hay resultados...</div></td></tr>`;
+    
+    return rows.map(r => {
+        const user = cats.users.find(u => u.idUser == r.idUser) || { avatar: '👤', nameUser: '?' };
+        const statusClass = (+r.actualAmountReceived >= +r.amountToBeReceived) ? 'amount-income' : 'amount-pending';
+        const statusIcon = (+r.actualAmountReceived >= +r.amountToBeReceived) ? '✅' : '⏳';
+        
+        const deficit = +r.amountToBeReceived - +r.actualAmountReceived;
+        const deficitBadge = deficit > 0 
+            ? `<span class="badge badge--pending" style="font-size:0.7rem; margin-top:4px">⚠️ Déficit ${Ui.money(deficit)}</span>` 
+            : '';
+        const rowStyle = deficit > 0 ? 'border-left: 4px solid var(--clr-expense)' : '';
+        
+        return `
+          <tr data-id="${r.idIncome}" style="${rowStyle}">
+            <td>${Ui.date(r.date)}</td>
+            <td>
+                <div style="display:flex; flex-direction:column">
+                    <span class="badge badge--income">💵 ${r.nameTypeIncome || '—'}</span>
+                    ${deficitBadge}
+                </div>
+            </td>
+            <td><div class="user-chip" title="${user.nameUser}"><span>${user.avatar}</span></div></td>
+            <td><span class="txt-muted">${r.nameTypeSubjectIncome || '—'}</span></td>
+            <td>
+                <div style="display:flex; flex-direction:column; gap:2px">
+                    <span class="${statusClass}" style="font-size:1rem">${Ui.money(r.actualAmountReceived)}</span>
+                    <span class="txt-muted" style="font-size:0.75rem">de ${Ui.money(r.amountToBeReceived)}</span>
+                </div>
+            </td>
+            <td><span class="txt-muted" style="font-size:0.8rem">${statusIcon} ${r.nameOrigin || '—'}</span></td>
+            <td>
+              <div class="tbl-actions">
+                <button class="tbl-btn" onclick="incEdit(${r.idIncome})" title="Editar">✏️</button>
+                <button class="tbl-btn tbl-btn--danger" onclick="incDelete(${r.idIncome})" title="Eliminar">🗑</button>
+              </div>
+            </td>
+          </tr>`;
+    }).join('');
 }
 
 function incFormHTML(data = {}) {

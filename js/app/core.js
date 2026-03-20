@@ -52,7 +52,7 @@ async function navigate(hash) {
     const link = document.querySelector(`.top-nav__link[data-module="${key}"]`);
     if (link) link.classList.add('active');
 
-    const titles = { dashboard: 'Resumen', income: 'Ingresos', expenses: 'Gastos', debt: 'Deudas', goals: 'Metas' };
+    const titles = { dashboard: 'Resumen', income: 'Ingresos', expenses: 'Gastos', debt: 'Deudas', goals: 'Metas', profile: 'Mi Perfil' };
     
     const fn = modules[hash];
     if (fn) {

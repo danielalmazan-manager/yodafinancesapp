@@ -17,60 +17,7 @@ async function renderDebtModule(outlet) {
     const pending = Math.max(0, total - paid);
     const globalPercent = total > 0 ? Math.round((paid / total) * 100) : 100;
 
-    const tableRows = rows.length
-        ? rows.map(r => {
-            const amtToPay = +r.amountToPay || 0;
-            const amtPaid = +r.actualAmountPaid || 0;
-            const rowPending = Math.max(0, amtToPay - amtPaid);
-            const isPaid = rowPending <= 0 && amtToPay > 0;
-            
-            let statusBadge = '';
-            let progressColor = 'var(--clr-primary)';
-            
-            if (isPaid) {
-                statusBadge = '<span class="badge badge--income">✅ Liquidada</span>';
-                progressColor = 'var(--clr-income)';
-            } else if (amtPaid > 0) {
-                statusBadge = '<span class="badge" style="background:var(--clr-accent); color:white">🌓 En Proceso</span>';
-                progressColor = 'var(--clr-accent)';
-            } else {
-                statusBadge = '<span class="badge badge--expense">⏳ Vigente</span>';
-            }
-
-            const rowPercent = amtToPay > 0 ? Math.min(100, Math.round((amtPaid / amtToPay) * 100)) : 100;
-
-            return `<tr data-id="${r.idDebt}">
-              <td>${Ui.date(r.date)}</td>
-              <td>
-                <div style="display:flex; flex-direction:column; gap:4px">
-                    <span style="font-weight:600">${r.nameTypeDebt || '—'}</span>
-                    <span class="txt-muted" style="font-size:0.8rem">${r.nameCreditCardOrPersonalLoan || '—'}</span>
-                </div>
-              </td>
-              <td><span class="txt-muted">${r.nameTypeSubjectDebt || '—'}</span></td>
-              <td>
-                <div style="display:flex; flex-direction:column; gap:4px">
-                    <div style="display:flex; justify-content:space-between; font-size:0.85rem">
-                        <span>${Ui.money(amtPaid)}</span>
-                        <span class="txt-muted">of ${Ui.money(amtToPay)}</span>
-                    </div>
-                    <div class="quincena-progress" style="height:6px">
-                        <div class="q-bar" style="width: ${rowPercent}%; background: ${progressColor}"></div>
-                    </div>
-                </div>
-              </td>
-              <td><span class="${isPaid ? 'amount-income' : 'amount-pending'}" style="font-weight:600">${Ui.money(rowPending)}</span></td>
-              <td>${statusBadge}</td>
-              <td class="txt-muted" style="font-size:0.85rem">${r.txtNotes || '—'}</td>
-              <td>
-                <div class="tbl-actions">
-                  <button class="tbl-btn" onclick="debtEdit(${r.idDebt})" title="Editar">✏️</button>
-                  <button class="tbl-btn tbl-btn--danger" onclick="debtDelete(${r.idDebt})" title="Eliminar">🗑</button>
-                </div>
-              </td>
-            </tr>`;
-          }).join('')
-        : `<tr><td colspan="8"><div class="empty-state"><div class="empty-state__icon">💳</div><p class="empty-state__title">Sin deudas registradas</p><p class="empty-state__text">¡Bien hecho! O empieza registrando una deuda.</p></div></td></tr>`;
+    const tableRows = renderDebtRows(rows, cats);
 
     outlet.innerHTML = `
       <div class="module-header" style="margin-bottom: var(--gap-lg);">
@@ -131,8 +78,17 @@ async function renderDebtModule(outlet) {
       </div>
 
       <div class="table-wrap">
-        <div class="table-toolbar">
-          <span class="table-toolbar__title">Detalle de Deudas (${rows.length})</span>
+        <div class="table-toolbar" style="flex-wrap:wrap; gap:15px">
+          <div style="display:flex; align-items:center; gap:10px; flex-grow:1">
+            <span class="table-toolbar__title">Detalle de Deudas</span>
+            <select class="form__input" style="padding:4px 8px; font-size:0.8rem; width:auto" id="debtFilterDate">
+                <option value="">Todas las fechas</option>
+                ${Ui.options(cats.dates, 'idCatDate', r => `${r.date} (Q${r.numQuin})`)}
+            </select>
+            <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer; color:var(--clr-text-2)">
+                <input type="checkbox" id="debtHideLiquidated" checked> Ocultar liquidadas
+            </label>
+          </div>
           <input type="text" class="table-search" id="debtSearch" placeholder="Buscar…">
         </div>
         <div style="overflow-x:auto">
@@ -149,8 +105,82 @@ async function renderDebtModule(outlet) {
       </div>`;
 
     Ui.filterTable('debtSearch', 'debtTable');
+
+    const handleFilters = () => {
+        const dateId = document.getElementById('debtFilterDate').value;
+        const hideLiquidated = document.getElementById('debtHideLiquidated').checked;
+        
+        let filtered = rows;
+        if (dateId) filtered = filtered.filter(r => r.idCatDate == dateId);
+        if (hideLiquidated) {
+            filtered = filtered.filter(r => (+r.actualAmountPaid < +r.amountToPay) || (+r.amountToPay == 0));
+        }
+        
+        document.querySelector('#debtTable tbody').innerHTML = renderDebtRows(filtered, cats);
+    };
+
+    document.getElementById('debtFilterDate').addEventListener('change', handleFilters);
+    document.getElementById('debtHideLiquidated').addEventListener('change', handleFilters);
+
     window._debtRows = rows;
     window._debtCats = cats;
+}
+
+function renderDebtRows(rows, cats) {
+    if (!rows.length) return '<tr><td colspan="8"><div class="empty-state">No hay resultados...</div></td></tr>';
+    
+    return rows.map(r => {
+        const amtToPay = +r.amountToPay || 0;
+        const amtPaid = +r.actualAmountPaid || 0;
+        const rowPending = Math.max(0, amtToPay - amtPaid);
+        const isPaid = rowPending <= 0 && amtToPay > 0;
+        
+        let statusBadge = '';
+        let progressColor = 'var(--clr-primary)';
+        
+        if (isPaid) {
+            statusBadge = '<span class="badge badge--income">✅ Liquidada</span>';
+            progressColor = 'var(--clr-income)';
+        } else if (amtPaid > 0) {
+            statusBadge = '<span class="badge" style="background:var(--clr-accent); color:white">🌓 En Proceso</span>';
+            progressColor = 'var(--clr-accent)';
+        } else {
+            statusBadge = '<span class="badge badge--expense">⏳ Vigente</span>';
+        }
+
+        const rowPercent = amtToPay > 0 ? Math.min(100, Math.round((amtPaid / amtToPay) * 100)) : 100;
+
+        return `<tr data-id="${r.idDebt}">
+          <td>${Ui.date(r.date)}</td>
+          <td>
+            <div style="display:flex; flex-direction:column; gap:4px">
+                <span style="font-weight:600">${r.nameTypeDebt || '—'}</span>
+                <span class="txt-muted" style="font-size:0.8rem">${r.nameCreditCardOrPersonalLoan || '—'}</span>
+            </div>
+          </td>
+          <td><span class="txt-muted">${r.nameTypeSubjectDebt || '—'}</span></td>
+          <td>
+            <div style="display:flex; flex-direction:column; gap:4px">
+                <div style="display:flex; justify-content:space-between; font-size:0.85rem">
+                    <span>${Ui.money(amtPaid)}</span>
+                    <span class="txt-muted">de ${Ui.money(amtToPay)}</span>
+                </div>
+                <div class="quincena-progress" style="height:6px">
+                    <div class="q-bar" style="width: ${rowPercent}%; background: ${progressColor}"></div>
+                </div>
+            </div>
+          </td>
+          <td><span class="${isPaid ? 'amount-income' : 'amount-pending'}" style="font-weight:600">${Ui.money(rowPending)}</span></td>
+          <td>${statusBadge}</td>
+          <td class="txt-muted" style="font-size:0.85rem">${r.txtNotes || '—'}</td>
+          <td>
+            <div class="tbl-actions">
+              <button class="tbl-btn" onclick="debtEdit(${r.idDebt})" title="Editar">✏️</button>
+              <button class="tbl-btn tbl-btn--danger" onclick="debtDelete(${r.idDebt})" title="Eliminar">🗑</button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
 }
 
 function debtFormHTML(data = {}) {
