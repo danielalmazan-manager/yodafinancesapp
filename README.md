@@ -48,6 +48,9 @@ Password: Demo2024!
 - Real-time balance overview
 - Monthly income vs. expenses chart
 - Biweekly (quincenal) projection similar to Excel
+- **Extended Sorting**: View records from oldest to newest for better chronological flow
+- **Advanced Filtering**: Filter any dashboard by date (quincena)
+- **Smart Visibility**: Toggle to hide completed or paid items to focus on what's pending
 - Visual spending patterns and trends
 - Quick stats widgets
 
@@ -79,7 +82,8 @@ Password: Demo2024!
 - Achievement milestones
 
 ### 👫 Couple Features
-- **Partnership System**: Link accounts as a couple
+- **Partnership System**: Link accounts as a couple via the new Profile module
+- **Easy Invitation**: Search and invite your partner using their email address
 - **Expense Splitting**: Automatic 50/50 or custom splits
 - **Balance Calculator**: See who owes whom
 - **Shared Budgets**: Joint financial planning
