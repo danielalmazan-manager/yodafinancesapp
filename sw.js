@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yoda-v1';
+const CACHE_NAME = 'yoda-v2';
 const urlsToCache = [
     '/',
     '/app.php',
