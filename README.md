@@ -5,6 +5,7 @@
   <br><br>
 </div>
 
+
   [![PHP Version](https://img.shields.io/badge/PHP-%3E%3D%208.0-8892BF.svg)](https://php.net)
   [![MySQL](https://img.shields.io/badge/MySQL-%3E%3D%205.7-blue.svg)](https://www.mysql.com)
   [![PWA Ready](https://img.shields.io/badge/PWA-Ready-5A0FC8.svg)](https://web.dev/progressive-web-apps/)
