@@ -10,6 +10,9 @@ $db     = Database::get();
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
+    $allowedIds = Auth::getAllowedUserIds($db);
+    $allowedIdsStr = implode(',', $allowedIds);
+
     $where  = [];
     $params = [];
 
@@ -34,6 +37,8 @@ if ($method === 'GET') {
         LEFT JOIN TableUser tu ON g.idUser = tu.idUser
     ";
 
+    $where[] = "g.idUser IN ($allowedIdsStr)";
+
     if ($where) $sql .= ' WHERE ' . implode(' AND ', $where);
     $sql .= ' ORDER BY g.idGoal DESC';
 
@@ -47,6 +52,7 @@ if ($method === 'GET') {
             SUM(targetAmount) as totalTarget,
             SUM(amountDeposited) as totalSaved
         FROM TableGoals
+        WHERE idUser IN ($allowedIdsStr)
     ")->fetch();
 
     Response::success([
@@ -59,6 +65,7 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
+    $currentUserId = Auth::currentUser()['id'];
     $b = json_decode(file_get_contents('php://input'), true) ?? [];
     $stmt = $db->prepare("
         INSERT INTO TableGoals (targetAmount, amountDeposited, txtDescription, statusGoal, idUser, idCatDate, idTypeGoal, idPlanGoal, typeSubjectGoal)
@@ -69,7 +76,7 @@ if ($method === 'POST') {
         $b['amountDeposited']  ?? 0,
         $b['txtDescription']   ?? null,
         $b['statusGoal']       ?? 0,
-        $b['idUser']           ?? Auth::currentUser()['id'],
+        $b['idUser']           ?? $currentUserId,
         $b['idCatDate']        ?? null,
         $b['idTypeGoal']       ?? null,
         $b['idPlanGoal']       ?? null,
@@ -82,6 +89,16 @@ if ($method === 'PUT') {
     $b = json_decode(file_get_contents('php://input'), true) ?? [];
     $id = (int)($b['idGoal'] ?? 0);
     if (!$id) Response::error('ID requerido');
+    
+    $currentUserId = Auth::currentUser()['id'];
+    
+    // Ownership check
+    $stmtCheck = $db->prepare("SELECT idUser FROM TableGoals WHERE idGoal = ?");
+    $stmtCheck->execute([$id]);
+    $existing = $stmtCheck->fetch();
+    if (!$existing || $existing['idUser'] != $currentUserId) {
+        Response::error('No tienes permiso para editar este registro', 403);
+    }
 
     $stmt = $db->prepare("
         UPDATE TableGoals SET 
@@ -101,7 +118,7 @@ if ($method === 'PUT') {
         $b['amountDeposited']  ?? 0,
         $b['txtDescription']   ?? null,
         $b['statusGoal']       ?? 0,
-        $b['idUser']           ?? Auth::currentUser()['id'],
+        $b['idUser']           ?? $currentUserId,
         $b['idCatDate']        ?? null,
         $b['idTypeGoal']       ?? null,
         $b['idPlanGoal']       ?? null,
@@ -114,6 +131,17 @@ if ($method === 'PUT') {
 if ($method === 'DELETE') {
     $id = (int)($_GET['id'] ?? 0);
     if (!$id) Response::error('ID requerido');
+    
+    $currentUserId = Auth::currentUser()['id'];
+    
+    // Ownership check
+    $stmtCheck = $db->prepare("SELECT idUser FROM TableGoals WHERE idGoal = ?");
+    $stmtCheck->execute([$id]);
+    $existing = $stmtCheck->fetch();
+    if (!$existing || $existing['idUser'] != $currentUserId) {
+        Response::error('No tienes permiso para eliminar este registro', 403);
+    }
+
     $db->prepare('DELETE FROM TableGoals WHERE idGoal = ?')->execute([$id]);
     Response::success(null, 'Meta eliminada');
 }

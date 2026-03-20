@@ -58,4 +58,26 @@ class Auth {
             'avatar' => $_SESSION['user_avatar']?? '😊',
         ];
     }
+
+    public static function getPartnerId(PDO $db): ?int {
+        $uid = self::currentUser()['id'];
+        if (!$uid) return null;
+        
+        $stmt = $db->prepare("
+            SELECT (CASE WHEN idUser1 = ? THEN idUser2 ELSE idUser1 END) as partnerId 
+            FROM TablePartnership 
+            WHERE (idUser1 = ? OR idUser2 = ?) AND isActive = 1 
+            LIMIT 1
+        ");
+        $stmt->execute([$uid, $uid, $uid]);
+        $res = $stmt->fetch();
+        return $res ? (int)$res['partnerId'] : null;
+    }
+
+    public static function getAllowedUserIds(PDO $db): array {
+        $uid = self::currentUser()['id'];
+        if (!$uid) return [];
+        $pid = self::getPartnerId($db);
+        return $pid ? [$uid, $pid] : [$uid];
+    }
 }

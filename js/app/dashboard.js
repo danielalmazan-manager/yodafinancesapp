@@ -9,8 +9,13 @@ registerModule('#dashboard', async (outlet) => {
             <div class="hero-stats">
                 <div class="hero-stat-main glass-card">
                     <span class="hero-stat-label">Saldo Acumulado</span>
-                    <h1 class="${data.summary.totalBalance >= 0 ? 'amount-income' : 'amount-expense'}">${Ui.money(data.summary.totalBalance)}</h1>
-                    <p class="hero-stat-sub">Capital total disponible</p>
+                    <div style="display:flex; align-items:baseline; gap:10px">
+                        <h1 class="${data.summary.totalBalance >= 0 ? 'amount-income' : 'amount-expense'}">${Ui.money(data.summary.totalBalance)}</h1>
+                        <span class="variation-chip ${data.summary.variation >= 0 ? 'up' : 'down'}">
+                            ${data.summary.variation >= 0 ? '▲' : '▼'} ${Ui.money(Math.abs(data.summary.variation))}
+                        </span>
+                    </div>
+                    <p class="hero-stat-sub">vs quincena anterior: ${Ui.money(data.summary.prevBalance)}</p>
                 </div>
                 
                 <div class="quincena-widget glass-card">
@@ -47,6 +52,48 @@ registerModule('#dashboard', async (outlet) => {
             <div class="stat-card glass-card">
                 <span class="stat-card__label">Metas de Ahorro</span>
                 <span class="stat-card__value amount-income" style="color: var(--clr-goal)">${Ui.money(data.summary.totalGoals)}</span>
+            </div>
+            <div class="stat-card glass-card insights-widget" style="background: linear-gradient(135deg, rgba(var(--clr-primary-rgb), 0.1), rgba(var(--clr-accent-rgb), 0.1));">
+                <span class="stat-card__label">Insights Financieros</span>
+                <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px">
+                    <div style="display:flex; justify-content:space-between">
+                        <span style="font-size:0.85rem">DTI (Deuda/Ingreso):</span>
+                        <span style="font-weight:700; color: ${data.summary.dti > 40 ? 'var(--clr-expense)' : 'var(--clr-income)'}">${data.summary.dti}%</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between">
+                        <span style="font-size:0.85rem">Tasa de Ahorro:</span>
+                        <span style="font-weight:700; color: ${data.summary.savingsRate > 20 ? 'var(--clr-income)' : 'var(--clr-pending)'}">${data.summary.savingsRate}%</span>
+                    </div>
+                    <p style="font-size:0.75rem; margin-top:5px; line-height:1.3; font-style:italic">
+                        ${data.summary.dti > 40 ? '⚠️ Tu deuda es alta, prioriza liquidar tarjetas.' : '✅ Tu nivel de deuda es saludable.'}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="partner-balance-section" style="margin-top: 2rem;">
+            <div class="glass-card" style="padding: 1.5rem;">
+                <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem;">🤝 Balance de Pareja (Gastos Compartidos)</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    ${data.coupleBalance.map(b => `
+                        <div class="partner-card" style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(var(--clr-primary-rgb), 0.05); border-radius: 12px;">
+                            <div class="partner-avatar" style="font-size: 2rem;">${b.avatar}</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600;">${b.nameUser}</div>
+                                <div class="txt-muted" style="font-size: 0.8rem;">Pagó: ${Ui.money(b.paid)}</div>
+                                <div class="${b.diff >= 0 ? 'amount-income' : 'amount-expense'}" style="font-weight: 700; font-size: 0.9rem;">
+                                    ${b.diff >= 0 ? 'A favor: ' : 'Debe: '}${Ui.money(Math.abs(b.diff))}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="margin-top: 1rem; text-align: center;">
+                    ${Math.abs(data.coupleBalance[0]?.diff || 0) < 1 ? 
+                        '<span class="badge badge--income">✅ ¡Están balanceados!</span>' : 
+                        `<span class="badge badge--pending">⚠️ Se deben ${Ui.money(Math.abs(data.coupleBalance[0]?.diff || 0))} para estar a mano</span>`
+                    }
+                </div>
             </div>
         </div>
 

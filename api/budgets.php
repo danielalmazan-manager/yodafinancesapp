@@ -11,27 +11,30 @@ $method = $_SERVER['REQUEST_METHOD'];
 $currentUserId = Auth::currentUser()['id'];
 
 if ($method === 'GET') {
-    // Get all budgets with current month spending
+    $allowedIds = Auth::getAllowedUserIds($db);
+    $allowedIdsStr = implode(',', $allowedIds);
+    
+    // Get all budgets with current month spending (combined for the partnership)
     $stmt = $db->prepare("
         SELECT
-            b.idBudget,
-            b.budgetAmount,
-            b.alertPercentage,
+            MAX(b.idBudget) as idBudget,
+            SUM(COALESCE(b.budgetAmount, 0)) as budgetAmount,
+            MAX(COALESCE(b.alertPercentage, 80)) as alertPercentage,
             cte.idTypeExpense,
             cte.nameTypeExpense,
             COALESCE(SUM(te.amountToPay), 0) as currentSpent,
             CASE
-                WHEN b.budgetAmount > 0 THEN ROUND((COALESCE(SUM(te.amountToPay), 0) / b.budgetAmount) * 100)
+                WHEN SUM(COALESCE(b.budgetAmount, 0)) > 0 THEN ROUND((COALESCE(SUM(te.amountToPay), 0) / SUM(COALESCE(b.budgetAmount, 0))) * 100)
                 ELSE 0
             END as usagePercentage,
             CASE
-                WHEN b.budgetAmount > 0 AND (COALESCE(SUM(te.amountToPay), 0) / b.budgetAmount) * 100 >= b.alertPercentage THEN 1
+                WHEN SUM(COALESCE(b.budgetAmount, 0)) > 0 AND (COALESCE(SUM(te.amountToPay), 0) / SUM(COALESCE(b.budgetAmount, 0))) * 100 >= MAX(COALESCE(b.alertPercentage, 80)) THEN 1
                 ELSE 0
             END as isAlert
         FROM CatalogTypeExpense cte
-        LEFT JOIN TableBudget b ON cte.idTypeExpense = b.idTypeExpense AND b.idUser = ? AND b.isActive = 1
+        LEFT JOIN TableBudget b ON cte.idTypeExpense = b.idTypeExpense AND b.idUser IN ($allowedIdsStr) AND b.isActive = 1
         LEFT JOIN TableExpenses te ON cte.idTypeExpense = te.idTypeExpense
-            AND te.idUser = ?
+            AND te.idUser IN ($allowedIdsStr)
             AND te.idCatDate IN (
                 SELECT idCatDate FROM CatalogDate
                 WHERE YEAR(date) = YEAR(NOW()) AND MONTH(date) = MONTH(NOW())
@@ -39,7 +42,7 @@ if ($method === 'GET') {
         GROUP BY cte.idTypeExpense
         ORDER BY cte.nameTypeExpense
     ");
-    $stmt->execute([$currentUserId, $currentUserId]);
+    $stmt->execute();
     $budgets = $stmt->fetchAll();
 
     // Calculate totals
@@ -76,7 +79,7 @@ if ($method === 'POST') {
         Response::error('Datos inválidos');
     }
 
-    // Insert or update budget
+    // Insert or update budget for the current user
     $stmt = $db->prepare("
         INSERT INTO TableBudget (idUser, idTypeExpense, budgetAmount, alertPercentage)
         VALUES (?, ?, ?, ?)
@@ -106,7 +109,11 @@ if ($method === 'PUT') {
         SET budgetAmount = ?, alertPercentage = ?
         WHERE idBudget = ? AND idUser = ?
     ");
-    $stmt->execute([$budgetAmount, $alertPercentage, $idBudget, $currentUserId]);
+    $result = $stmt->execute([$budgetAmount, $alertPercentage, $idBudget, $currentUserId]);
+
+    if ($stmt->rowCount() === 0) {
+        Response::error('No se encontró el presupuesto o no tienes permiso');
+    }
 
     Response::success(null, 'Presupuesto actualizado');
 }
@@ -124,6 +131,10 @@ if ($method === 'DELETE') {
         WHERE idBudget = ? AND idUser = ?
     ");
     $stmt->execute([$idBudget, $currentUserId]);
+
+    if ($stmt->rowCount() === 0) {
+        Response::error('No se encontró el presupuesto o no tienes permiso');
+    }
 
     Response::success(null, 'Presupuesto eliminado');
 }

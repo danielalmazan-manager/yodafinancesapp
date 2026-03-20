@@ -190,9 +190,21 @@ function goalAddFooter(action, id = null) {
     document.getElementById('modal').appendChild(footer);
 }
 
-window.goalNew = () => { Ui.openModal('🎯 Nueva Meta', goalFormHTML()); goalAddFooter('new'); };
+window.goalNew = () => { 
+    const cats = window._goalCats;
+    const defaultDateId = Ui.getCurrentIdCatDate(cats.dates);
+    Ui.openModal('🎯 Nueva Meta', goalFormHTML({ idCatDate: defaultDateId })); 
+    goalAddFooter('new'); 
+};
 
 window.goalSave = async () => {
+    const { valid, errors } = Ui.validate([
+        { id: 'f_idTypeGoal',   label: 'Tipo de Meta', required: true },
+        { id: 'f_idCatDate',    label: 'Fecha Inicio', required: true },
+        { id: 'f_targetAmount', label: 'Monto Meta',   required: true },
+    ]);
+    if (!valid) return Ui.toast(`Campos requeridos: ${errors.join(', ')}`, 'error');
+
     try {
         await API.post('api/goals.php', goalCollect());
         Ui.toast('Meta guardada ✅'); Ui.closeModal(); navigate('#goals');
@@ -206,6 +218,13 @@ window.goalEdit = (id) => {
 };
 
 window.goalUpdate = async (id) => {
+    const { valid, errors } = Ui.validate([
+        { id: 'f_idTypeGoal',   label: 'Tipo de Meta', required: true },
+        { id: 'f_idCatDate',    label: 'Fecha Inicio', required: true },
+        { id: 'f_targetAmount', label: 'Monto Meta',   required: true },
+    ]);
+    if (!valid) return Ui.toast(`Campos requeridos: ${errors.join(', ')}`, 'error');
+
     try {
         await API.put('api/goals.php', { ...goalCollect(), idGoal: id });
         Ui.toast('Meta actualizada ✅'); Ui.closeModal(); navigate('#goals');

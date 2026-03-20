@@ -22,10 +22,21 @@ async function renderIncomeModule(outlet) {
             const statusClass = (+r.actualAmountReceived >= +r.amountToBeReceived) ? 'amount-income' : 'amount-pending';
             const statusIcon = (+r.actualAmountReceived >= +r.amountToBeReceived) ? '✅' : '⏳';
             
+            const deficit = +r.amountToBeReceived - +r.actualAmountReceived;
+            const deficitBadge = deficit > 0 
+                ? `<span class="badge badge--pending" style="font-size:0.7rem; margin-top:4px">⚠️ Déficit ${Ui.money(deficit)}</span>` 
+                : '';
+            const rowStyle = deficit > 0 ? 'border-left: 4px solid var(--clr-expense)' : '';
+            
             return `
-              <tr data-id="${r.idIncome}">
+              <tr data-id="${r.idIncome}" style="${rowStyle}">
                 <td>${Ui.date(r.date)}</td>
-                <td><span class="badge badge--income">💵 ${r.nameTypeIncome || '—'}</span></td>
+                <td>
+                    <div style="display:flex; flex-direction:column">
+                        <span class="badge badge--income">💵 ${r.nameTypeIncome || '—'}</span>
+                        ${deficitBadge}
+                    </div>
+                </td>
                 <td><div class="user-chip" title="${user.nameUser}"><span>${user.avatar}</span></div></td>
                 <td><span class="txt-muted">${r.nameTypeSubjectIncome || '—'}</span></td>
                 <td>
@@ -51,7 +62,11 @@ async function renderIncomeModule(outlet) {
           <h2 class="module-header__title">💵 Ingresos</h2>
           <p class="module-header__subtitle">Gestión de entradas de capital</p>
         </div>
-        <button class="btn btn--primary" onclick="incNew()">+ Nuevo Ingreso</button>
+        <div style="display:flex; gap:10px">
+          <button class="btn btn--ghost" onclick="Ui.downloadCSV('ingresos_yoda.csv', window._incRows)">📥 Exportar CSV</button>
+          <button class="btn btn--primary" onclick="incNew()">+ Nuevo Ingreso</button>
+        </div>
+      </div>
       </div>
 
       <div class="income-summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--gap-md); margin-bottom: var(--gap-lg);">
@@ -165,9 +180,21 @@ function incAddFooter(action, id = null) {
     document.getElementById('modal').appendChild(footer);
 }
 
-window.incNew = () => { Ui.openModal('💵 Nuevo Ingreso', incFormHTML()); incAddFooter('new'); };
+window.incNew = () => { 
+    const cats = window._incCats;
+    const defaultDateId = Ui.getCurrentIdCatDate(cats.dates);
+    Ui.openModal('💵 Nuevo Ingreso', incFormHTML({ idCatDate: defaultDateId })); 
+    incAddFooter('new'); 
+};
 
 window.incSave = async () => {
+    const { valid, errors } = Ui.validate([
+        { id: 'f_idTypeIncome', label: 'Categoría', required: true },
+        { id: 'f_idCatDate',    label: 'Fecha',     required: true },
+        { id: 'f_amountExpected', label: 'Monto Esperado', required: true },
+    ]);
+    if (!valid) return Ui.toast(`Campos requeridos: ${errors.join(', ')}`, 'error');
+
     try {
         await API.post('api/income.php', incCollect());
         Ui.toast('Ingreso guardado ✅'); Ui.closeModal(); navigate('#income');
@@ -181,6 +208,13 @@ window.incEdit = (id) => {
 };
 
 window.incUpdate = async (id) => {
+    const { valid, errors } = Ui.validate([
+        { id: 'f_idTypeIncome', label: 'Categoría', required: true },
+        { id: 'f_idCatDate',    label: 'Fecha',     required: true },
+        { id: 'f_amountExpected', label: 'Monto Esperado', required: true },
+    ]);
+    if (!valid) return Ui.toast(`Campos requeridos: ${errors.join(', ')}`, 'error');
+
     try {
         await API.put('api/income.php', { ...incCollect(), idIncome: id });
         Ui.toast('Ingreso actualizado ✅'); Ui.closeModal(); navigate('#income');
@@ -193,14 +227,4 @@ window.incDelete = async (id) => {
         await API.delete('api/income.php', { id });
         Ui.toast('Ingreso eliminado'); navigate('#income');
     } catch(e) { Ui.toast(e.message, 'error'); }
-};
-
-// Override options helper for objects with dynamic label function
-const _origOptions = Ui.options.bind(Ui);
-Ui.options = (list, valKey, labelKey, selected = '') => {
-    if (!list || !Array.isArray(list)) return '';
-    if (typeof labelKey === 'function') {
-        return list.map(r => `<option value="${r[valKey]}" ${r[valKey] == selected ? 'selected' : ''}>${labelKey(r)}</option>`).join('');
-    }
-    return _origOptions(list, valKey, labelKey, selected);
 };

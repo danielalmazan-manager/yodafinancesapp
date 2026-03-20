@@ -78,7 +78,30 @@ async function renderDebtModule(outlet) {
           <h2 class="module-header__title">💳 Deudas</h2>
           <p class="module-header__subtitle">Seguimiento de saldos y compromisos</p>
         </div>
-        <button class="btn btn--primary" onclick="debtNew()">+ Registrar Deuda</button>
+        <div style="display:flex; gap:10px">
+          <button class="btn btn--ghost" onclick="Ui.downloadCSV('deudas_yoda.csv', window._debtRows)">📥 Exportar CSV</button>
+          <button class="btn btn--primary" onclick="debtNew()">+ Registrar Deuda</button>
+        </div>
+      </div>
+
+      <div class="debt-timeline glass-card" style="margin-bottom: var(--gap-lg); padding: 1.5rem;">
+        <h3 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 1rem; color: var(--clr-text-muted); text-transform: uppercase;">📅 Próximos Vencimientos (Cronograma)</h3>
+        <div class="timeline-scroll" style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 10px;">
+            ${(cats.dates || []).slice().reverse().slice(0, 8).map(d => {
+                const dueInQuin = rows.filter(r => r.idCatDate == d.idCatDate);
+                const totalDue = dueInQuin.reduce((acc, r) => acc + (+r.amountToPay - +r.actualAmountPaid), 0);
+                const isCurrent = d.idCatDate == Ui.getCurrentIdCatDate(cats.dates);
+                
+                return `
+                <div class="timeline-item ${isCurrent ? 'active' : ''}" style="min-width: 140px; padding: 12px; border-radius: 12px; background: ${isCurrent ? 'rgba(var(--clr-primary-rgb), 0.1)' : 'var(--clr-bg-2)'}; border: 1px solid ${isCurrent ? 'var(--clr-primary)' : 'var(--clr-border)'};">
+                    <div style="font-size: 0.7rem; font-weight: 700; color: var(--clr-text-muted)">${d.date}</div>
+                    <div style="font-size: 0.8rem; font-weight: 800; margin: 4px 0;">Q${d.numQuin}</div>
+                    <div class="${totalDue > 0 ? 'amount-expense' : 'amount-income'}" style="font-size: 1rem; font-weight: 700;">
+                        ${Ui.money(totalDue)}
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>
       </div>
 
       <div class="debt-summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--gap-md); margin-bottom: var(--gap-lg);">
@@ -177,7 +200,7 @@ function debtFormHTML(data = {}) {
             <label class="form__label">Monto Pagado hasta hoy</label>
             <div style="display:flex; gap:8px">
                 <input type="number" id="f_actualAmountPaid" class="form__input" step="0.01" min="0" placeholder="0.00" value="${data.actualAmountPaid||''}">
-                <button class="btn btn--ghost" style="padding:0 10px" onclick="document.getElementById('f_actualAmountPaid').value = document.getElementById('f_amountToPay').value" title="Marcar como liquidada">✅ Liquidad</button>
+                <button class="btn btn--ghost" style="padding:0 10px" onclick="document.getElementById('f_actualAmountPaid').value = document.getElementById('f_amountToPay').value" title="Marcar como liquidada">✅ Liquidar</button>
             </div>
           </div>
           <div class="form__group" style="grid-column: span 2;">
@@ -214,9 +237,21 @@ function debtAddFooter(action, id = null) {
     document.getElementById('modal').appendChild(footer);
 }
 
-window.debtNew = () => { Ui.openModal('➕ Nueva Deuda', debtFormHTML()); debtAddFooter('new'); };
+window.debtNew = () => { 
+    const cats = window._debtCats;
+    const defaultDateId = Ui.getCurrentIdCatDate(cats.dates);
+    Ui.openModal('➕ Nueva Deuda', debtFormHTML({ idCatDate: defaultDateId })); 
+    debtAddFooter('new'); 
+};
 
 window.debtSave = async () => {
+    const { valid, errors } = Ui.validate([
+        { id: 'f_idTypeDebt',   label: 'Tipo de Deuda', required: true },
+        { id: 'f_idCatDate',    label: 'Fecha',         required: true },
+        { id: 'f_amountToPay',  label: 'Monto Total',   required: true },
+    ]);
+    if (!valid) return Ui.toast(`Campos requeridos: ${errors.join(', ')}`, 'error');
+
     try {
         await API.post('api/debt.php', debtCollect());
         Ui.toast('Deuda guardada ✅'); Ui.closeModal(); navigate('#debt');
@@ -230,6 +265,13 @@ window.debtEdit = (id) => {
 };
 
 window.debtUpdate = async (id) => {
+    const { valid, errors } = Ui.validate([
+        { id: 'f_idTypeDebt',   label: 'Tipo de Deuda', required: true },
+        { id: 'f_idCatDate',    label: 'Fecha',         required: true },
+        { id: 'f_amountToPay',  label: 'Monto Total',   required: true },
+    ]);
+    if (!valid) return Ui.toast(`Campos requeridos: ${errors.join(', ')}`, 'error');
+
     try {
         await API.put('api/debt.php', { ...debtCollect(), idDebt: id });
         Ui.toast('Deuda actualizada ✅'); Ui.closeModal(); navigate('#debt');

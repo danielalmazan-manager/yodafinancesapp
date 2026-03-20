@@ -1,7 +1,6 @@
 # 💰 Yoda Finances - Smart Couple's Financial Management System
 
 <div align="center">
-  <img src="docs/images/logo.png" alt="Yoda Finances Logo" width="200"/>
 
   [![PHP Version](https://img.shields.io/badge/PHP-%3E%3D%208.0-8892BF.svg)](https://php.net)
   [![MySQL](https://img.shields.io/badge/MySQL-%3E%3D%205.7-blue.svg)](https://www.mysql.com)
@@ -10,7 +9,7 @@
 
   **A modern, feature-rich financial management application designed for couples**
 
-  [Live Demo](https://yodafinances.demo.com) | [Features](#features) | [Installation](#installation) | [Documentation](#documentation)
+  [Live Demo](https://yoda.nexuslogicit.com) | [Features](#features) | [Installation](#installation) | [Documentation](#documentation)
 </div>
 
 ---
@@ -33,7 +32,7 @@ Yoda Finances is a comprehensive web-based financial management system specifica
 Experience the application with our demo account:
 
 ```
-URL: https://your-domain.com
+URL: https://yoda.nexuslogicit.com
 Email: demo@yodafinances.com
 Password: Demo2024!
 ```
@@ -432,11 +431,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-**Daniel Almazán** - Full Stack Developer
+**Daniel Almazán**
+IT Project Manager · Technical Architect · Systems Integration Specialist
 
-- GitHub: [@danielalmazan-manager](https://github.com/danielalmazan-manager)
-- LinkedIn: [Your LinkedIn](https://linkedin.com/in/your-profile)
-- Email: daniel.almazan.lopez16@gmail.com
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/daniel-almazan-l/)
+[![Email](https://img.shields.io/badge/Email-Contact_Me-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:daniel.almazan.lopez16@gmail.com)
+[![Portfolio](https://img.shields.io/badge/Portfolio-View_More-000000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/danielalmazan-manager?tab=repositories)
 
 ---
 

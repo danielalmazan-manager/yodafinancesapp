@@ -86,6 +86,49 @@ $user = Auth::currentUser();
     </div>
 </nav>
 
+<!-- ======= BOTTOM NAV (Mobile) ======= -->
+<nav class="bottom-nav">
+    <a href="#dashboard" class="bottom-nav__link active" data-module="dashboard">
+        <span class="bottom-nav__icon">🏠</span>
+        <span>INICIO</span>
+    </a>
+    <a href="#income" class="bottom-nav__link" data-module="income">
+        <span class="bottom-nav__icon">💵</span>
+        <span>INGRESOS</span>
+    </a>
+    <a href="#expenses" class="bottom-nav__link" data-module="expenses">
+        <span class="bottom-nav__icon">🛒</span>
+        <span>GASTOS</span>
+    </a>
+    <a href="#debt" class="bottom-nav__link" data-module="debt">
+        <span class="bottom-nav__icon">💳</span>
+        <span>DEUDAS</span>
+    </a>
+    <a href="#goals" class="bottom-nav__link" data-module="goals">
+        <span class="bottom-nav__icon">🎯</span>
+        <span>METAS</span>
+    </a>
+</nav>
+
+<!-- ======= FAB ======= -->
+<div class="fab-container" id="fabContainer">
+    <div class="fab-menu">
+        <a href="javascript:void(0)" class="fab-item" onclick="toggleFab(); incNew()">
+            <span class="fab-item__label">Nuevo Ingreso</span>
+            <span class="fab-item__btn">💵</span>
+        </a>
+        <a href="javascript:void(0)" class="fab-item" onclick="toggleFab(); expNew()">
+            <span class="fab-item__label">Registrar Gasto</span>
+            <span class="fab-item__btn">🛒</span>
+        </a>
+        <a href="javascript:void(0)" class="fab-item" onclick="toggleFab(); debtNew()">
+            <span class="fab-item__label">Nueva Deuda</span>
+            <span class="fab-item__btn">💳</span>
+        </a>
+    </div>
+    <button class="fab-main" id="fabMain" onclick="toggleFab()">+</button>
+</div>
+
 <!-- ======= MAIN ======= -->
 <div class="app-viewport">
     <main class="app-content" id="app-outlet">

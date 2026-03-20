@@ -114,7 +114,27 @@ const Ui = {
 
     // Build select options HTML
     options(list, valKey, labelKey, selected = '') {
-        return list.map(r => `<option value="${r[valKey]}" ${r[valKey] == selected ? 'selected' : ''}>${r[labelKey]}</option>`).join('');
+        if (!list || !Array.isArray(list)) return '';
+        return list.map(r => {
+            const label = typeof labelKey === 'function' ? labelKey(r) : r[labelKey];
+            return `<option value="${r[valKey]}" ${r[valKey] == selected ? 'selected' : ''}>${label}</option>`;
+        }).join('');
+    },
+
+    // Form field validator
+    validate(rules) {
+        const errors = [];
+        rules.forEach(({ id, label, required }) => {
+            const el = document.getElementById(id);
+            const val = el?.value?.trim();
+            if (required && !val) {
+                errors.push(label);
+                el?.classList.add('input--error');
+            } else {
+                el?.classList.remove('input--error');
+            }
+        });
+        return { valid: errors.length === 0, errors };
     },
 
     // Confirm dialog
@@ -132,7 +152,112 @@ const Ui = {
             });
         });
     },
+
+    // Global search modal
+    async openSearch() {
+        const html = `
+            <div class="search-modal-content">
+                <input type="text" id="globalSearchInp" class="form__input" placeholder="Buscar gastos, ingresos, notas..." style="width: 100%; font-size: 1.2rem; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem;" autofocus>
+                <div id="globalSearchResults" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                    <p class="txt-muted" style="text-align: center; padding: 2rem;">Escribe al menos 2 caracteres para buscar...</p>
+                </div>
+            </div>
+        `;
+        this.openModal('🔍 Buscador Global', html);
+        
+        const inp = document.getElementById('globalSearchInp');
+        const resDiv = document.getElementById('globalSearchResults');
+        
+        let timeout;
+        inp.addEventListener('input', () => {
+            clearTimeout(timeout);
+            const q = inp.value.trim();
+            if (q.length < 2) return;
+            
+            timeout = setTimeout(async () => {
+                resDiv.innerHTML = '<div class="app-loader__spinner" style="margin: 2rem auto"></div>';
+                try {
+                    const results = await API.get('api/search.php', { q });
+                    if (!results.length) {
+                        resDiv.innerHTML = '<p class="txt-muted" style="text-align: center; padding: 2rem;">No se encontraron resultados.</p>';
+                        return;
+                    }
+                    resDiv.innerHTML = results.map(r => {
+                        const icon = { income: '💵', expense: '🛒', debt: '💳' }[r.type];
+                        return `
+                            <div class="search-result-item glass-card" style="padding: 12px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: transform 0.2s;" onclick="Ui.closeModal(); navigate('#${r.type}')">
+                                <div style="font-size: 1.5rem;">${icon}</div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 700; font-size: 0.95rem;">${r.category || 'Sin categoría'}</div>
+                                    <div class="txt-muted" style="font-size: 0.8rem;">${r.date} — ${r.notes || 'Sin notas'}</div>
+                                </div>
+                                <div class="amount-${r.type}" style="font-weight: 800;">${this.money(r.amount)}</div>
+                            </div>
+                        `;
+                    }).join('');
+                } catch(e) { 
+                    resDiv.innerHTML = `<p class="amount-expense" style="text-align: center; padding: 2rem;">${e.message}</p>`;
+                }
+            }, 300);
+        });
+    },
+
+    // CSV Export
+    downloadCSV(filename, rows) {
+        if (!rows || !rows.length) return this.toast('Sin datos para exportar', 'error');
+        const keys = Object.keys(rows[0]);
+        const csvContent = "data:text/csv;charset=utf-8," 
+            + keys.join(",") + "\n"
+            + rows.map(r => keys.map(k => {
+                let cell = r[k] === null || r[k] === undefined ? "" : r[k];
+                cell = cell.toString().replace(/"/g, '""');
+                return cell.includes(',') ? `"${cell}"` : cell;
+            }).join(",")).join("\n");
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    },
+
+    // Helper to find current quincena from catalog
+    getCurrentIdCatDate(dates) {
+        if (!dates || !dates.length) return null;
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        
+        // Find the record with the closest date <= today
+        let bestMatch = null;
+        for (const r of dates) {
+            if (r.date <= todayStr) {
+                if (!bestMatch || r.date > bestMatch.date) {
+                    bestMatch = r;
+                }
+            }
+        }
+        
+        // If no past date, take the first one
+        return (bestMatch || dates[0]).idCatDate;
+    }
 };
+
+/* --- FAB LOGIC --- */
+window.toggleFab = () => {
+    const fab = document.getElementById('fabContainer');
+    if (fab) fab.classList.toggle('open');
+};
+
+/* --- NAVIGATION SYNC --- */
+const syncNav = (hash) => {
+    const module = (hash || '#dashboard').replace('#', '');
+    document.querySelectorAll('.top-nav__link, .bottom-nav__link').forEach(link => {
+        link.classList.toggle('active', link.getAttribute('data-module') === module);
+    });
+};
+
 // ---- SIDEBAR & HEADER TOGGLE ----
 document.addEventListener('DOMContentLoaded', () => {
     // Modal close
@@ -153,8 +278,8 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('theme', newTheme);
     });
 
-    // Top nav links
-    document.querySelectorAll('.top-nav__link').forEach(link => {
+    // Nav links (Top & Bottom)
+    document.querySelectorAll('.top-nav__link, .bottom-nav__link').forEach(link => {
         link.addEventListener('click', e => {
             e.preventDefault();
             const moduleKey = link.dataset.module;
@@ -163,8 +288,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Hash-based routing on load
-    window.addEventListener('hashchange', () => navigate(window.location.hash));
+    window.addEventListener('hashchange', () => {
+        syncNav(window.location.hash);
+        navigate(window.location.hash);
+    });
     
     // Initial Boot
-    setTimeout(() => navigate(window.location.hash || '#dashboard'), 100);
+    setTimeout(() => {
+        syncNav(window.location.hash);
+        navigate(window.location.hash || '#dashboard');
+    }, 100);
+
+    // Close FAB when clicking outside
+    document.addEventListener('click', (e) => {
+        const fab = document.getElementById('fabContainer');
+        if (fab && fab.classList.contains('open') && !fab.contains(e.target) && !e.target.closest('.fab-main')) {
+            fab.classList.remove('open');
+        }
+    });
+
+    // Ctrl+K Search Listener
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            Ui.openSearch();
+        }
+    });
 });

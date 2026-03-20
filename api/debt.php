@@ -10,6 +10,9 @@ $db     = Database::get();
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
+    $allowedIds = Auth::getAllowedUserIds($db);
+    $allowedIdsStr = implode(',', $allowedIds);
+
     $where  = [];
     $params = [];
 
@@ -39,6 +42,9 @@ if ($method === 'GET') {
         LEFT JOIN CatalogOrigin co ON td.idOrigin = co.idOrigin
         LEFT JOIN CatalogidCreditCardOrPersonalLoan cc ON td.idCreditCardOrPersonalLoan = cc.idCreditCardOrPersonalLoan
     ";
+    
+    $where[] = "td.idUser IN ($allowedIdsStr)";
+    
     if ($where) $sql .= ' WHERE ' . implode(' AND ', $where);
     $sql .= ' ORDER BY cd.date DESC';
 
@@ -52,6 +58,7 @@ if ($method === 'GET') {
             COALESCE(SUM(amountToPay), 0) AS total,
             COALESCE(SUM(actualAmountPaid), 0) AS paid
         FROM TableDebt
+        WHERE idUser IN ($allowedIdsStr)
     ")->fetch();
 
     Response::success([
@@ -61,6 +68,7 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
+    $currentUserId = Auth::currentUser()['id'];
     $b = json_decode(file_get_contents('php://input'), true) ?? [];
     $stmt = $db->prepare("
         INSERT INTO TableDebt (amountToPay, actualAmountPaid, txtNotes, idUser, idCatDate, idTypeDebt, idOrigin, idCreditCardOrPersonalLoan, typeSubjectDebt)
@@ -70,7 +78,7 @@ if ($method === 'POST') {
         $b['amountToPay']                  ?? 0,
         $b['actualAmountPaid']             ?? null,
         $b['txtNotes']                     ?? null,
-        $b['idUser']                       ?? Auth::currentUser()['id'],
+        $b['idUser']                       ?? $currentUserId,
         $b['idCatDate']                    ?? null,
         $b['idTypeDebt']                   ?? null,
         $b['idOrigin']                     ?? null,
@@ -84,6 +92,17 @@ if ($method === 'PUT') {
     $b  = json_decode(file_get_contents('php://input'), true) ?? [];
     $id = (int)($b['idDebt'] ?? 0);
     if (!$id) Response::error('ID requerido');
+    
+    $currentUserId = Auth::currentUser()['id'];
+    
+    // Ownership check
+    $stmtCheck = $db->prepare("SELECT idUser FROM TableDebt WHERE idDebt = ?");
+    $stmtCheck->execute([$id]);
+    $existing = $stmtCheck->fetch();
+    if (!$existing || $existing['idUser'] != $currentUserId) {
+        Response::error('No tienes permiso para editar este registro', 403);
+    }
+
     $stmt = $db->prepare("
         UPDATE TableDebt SET amountToPay=?, actualAmountPaid=?, txtNotes=?, idUser=?,
                idCatDate=?, idTypeDebt=?, idOrigin=?, idCreditCardOrPersonalLoan=?, typeSubjectDebt=?
@@ -93,7 +112,7 @@ if ($method === 'PUT') {
         $b['amountToPay']                  ?? 0,
         $b['actualAmountPaid']             ?? null,
         $b['txtNotes']                     ?? null,
-        $b['idUser']                       ?? Auth::currentUser()['id'],
+        $b['idUser']                       ?? $currentUserId,
         $b['idCatDate']                    ?? null,
         $b['idTypeDebt']                   ?? null,
         $b['idOrigin']                     ?? null,
@@ -107,6 +126,17 @@ if ($method === 'PUT') {
 if ($method === 'DELETE') {
     $id = (int)($_GET['id'] ?? 0);
     if (!$id) Response::error('ID requerido');
+    
+    $currentUserId = Auth::currentUser()['id'];
+    
+    // Ownership check
+    $stmtCheck = $db->prepare("SELECT idUser FROM TableDebt WHERE idDebt = ?");
+    $stmtCheck->execute([$id]);
+    $existing = $stmtCheck->fetch();
+    if (!$existing || $existing['idUser'] != $currentUserId) {
+        Response::error('No tienes permiso para eliminar este registro', 403);
+    }
+
     $db->prepare('DELETE FROM TableDebt WHERE idDebt = ?')->execute([$id]);
     Response::success(null, 'Deuda eliminada');
 }

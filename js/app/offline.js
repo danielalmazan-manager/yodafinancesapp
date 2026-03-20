@@ -223,7 +223,8 @@ API._req = async function(url, options = {}) {
 
                     // For projection, we actually need data across all dates
                     // We'll group all cached data by idCatDate
-                    const dates = await IDB.getAll('store_dates'); // Assuming we have these in cache
+                    const cachedCats = await IDB.get(STORES.catalogs, 'all');
+                    const dates = cachedCats?.data?.dates || [];
                     
                     const projection = dates.sort((a,b) => new Date(a.date) - new Date(b.date)).map(d => {
                         const incRows = rows.filter(r => r.type === 'income'  && r.idCatDate == d.idCatDate);
