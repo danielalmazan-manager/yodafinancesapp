@@ -1,7 +1,7 @@
 # Yoda Finances - Smart Couple's Financial Management System
 
 <div align="center">
-  <img src="assets/images/yoda_logo_light.png" alt="Yoda Finances" width="200" />
+  <img src="assets/images/LogoGitHubYODA.png" alt="Yoda Finances" width="200" />
   <br><br>
 </div>
 
