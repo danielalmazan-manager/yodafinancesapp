@@ -1,0 +1,22 @@
+{
+  "name": "Yoda Finanzas",
+  "short_name": "Yoda",
+  "description": "Administración financiera para parejas",
+  "start_url": "/app.php",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0e1a",
+  "theme_color": "#6c63ff",
+  "lang": "es",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    { "src": "/assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Ingresos",  "url": "/app.php#income",   "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Gastos",    "url": "/app.php#expenses",  "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Deudas",   "url": "/app.php#debt",      "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

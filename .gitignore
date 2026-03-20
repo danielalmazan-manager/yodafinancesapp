@@ -1,0 +1,46 @@
+# Configuration files with sensitive data
+/config/database.php
+.env
+.env.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+error_log
+access_log
+/logs/
+
+# Dependencies (if any are added later)
+/vendor/
+/node_modules/
+
+# Cache and temporary files
+/cache/
+/tmp/
+*.cache
+
+# Uploaded files (if any)
+/uploads/
+/storage/
+
+# Backup files
+*.bak
+*.backup
+*.sql
+*.dump
+
+# System files
+.htaccess.local
+php.ini
+
+# Keep the example files
+!database.example.php
+!.env.example
