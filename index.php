@@ -13,6 +13,9 @@ if (Auth::isLoggedIn()) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Yoda Finanzas — Gestión financiera para parejas">
     <title>Yoda · Inicia Sesión</title>
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -29,8 +32,7 @@ if (Auth::isLoggedIn()) {
     <div class="login-wrap">
         <!-- Branding -->
         <div class="login-brand">
-            <div class="login-brand__icon">💰</div>
-            <h1 class="login-brand__name gradient-text">Yoda Finanzas</h1>
+            <img src="assets/images/yoda_logo_light.png" alt="Yoda Logo" style="height: 60px; margin-bottom: 1rem;" id="loginLogo">
             <p class="login-brand__tagline">Administración financiera para dos ❤️</p>
         </div>
 
@@ -76,6 +78,14 @@ if (Auth::isLoggedIn()) {
     </div>
 
     <script>
+    // Theme sync for login logo
+    const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    const loginLogo = document.getElementById('loginLogo');
+    if (loginLogo && savedTheme === 'dark') {
+        loginLogo.src = 'assets/images/yoda_logo_dark.png';
+    }
+
     const form     = document.getElementById('loginForm');
     const errBox   = document.getElementById('loginError');
     const submitBtn= document.getElementById('loginSubmit');

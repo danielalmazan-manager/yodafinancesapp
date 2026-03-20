@@ -276,7 +276,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
+        
+        // Swap logo src
+        const appLogo = document.getElementById('appLogo');
+        if (appLogo) {
+            appLogo.src = newTheme === 'dark' ? 'assets/images/yoda_logo_dark.png' : 'assets/images/yoda_logo_light.png';
+        }
     });
+
+    // Set initial logo based on saved theme
+    if (savedTheme === 'dark') {
+        const appLogo = document.getElementById('appLogo');
+        if (appLogo) appLogo.src = 'assets/images/yoda_logo_dark.png';
+    }
 
     // Nav links (Top & Bottom)
     document.querySelectorAll('.top-nav__link, .bottom-nav__link').forEach(link => {

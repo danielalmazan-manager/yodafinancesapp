@@ -13,7 +13,7 @@ $user = Auth::currentUser();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Yoda Finanzas — Dashboard financiero">
-    <meta name="theme-color" content="#6c63ff">
+    <meta name="theme-color" content="#FFD700">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -21,7 +21,8 @@ $user = Auth::currentUser();
     <title>Yoda · <?= htmlspecialchars($user['name']) ?></title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -42,8 +43,7 @@ $user = Auth::currentUser();
 <nav class="top-nav glass-card">
     <div class="top-nav__inner">
         <div class="top-nav__logo">
-            <span class="top-nav__logo-icon">C</span>
-            <span class="top-nav__logo-text">Yoda</span>
+            <img src="assets/images/yoda_logo_light.png" alt="Yoda Logo" class="nav__logo-img" id="appLogo">
         </div>
         
         <ul class="top-nav__menu">
